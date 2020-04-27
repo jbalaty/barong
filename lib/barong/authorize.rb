@@ -82,10 +82,6 @@ module Barong
     def api_key_owner
       api_key = APIKeysVerifier.new(api_key_params)
 
-      # validate that signature was not used in last 60 seconds
-      unless Rails.cache.read("auth/blacklist/#{api_key_params[:signature]}").nil?
-        error!({ errors: ['authz.signature_blacklisted'] }, 401) 
-      end
       # validate that nonce is a positive integer
       error!({ errors: ['authz.nonce_not_valid_timestamp'] }, 401) if api_key_params[:nonce].to_i <= 0
       # timestamp_window is a difference between server_time and nonce creation time
@@ -102,14 +98,12 @@ module Barong
       error!({ errors: ['authz.apikey_not_active'] }, 401) unless current_api_key.active?
 
       user = User.find_by_id(current_api_key.user_id)
-      Rails.logger.debug("Api key authorization by user: #{user.email} via key: #{current_api_key.kid}")
+      Rails.logger.debug("Api key authorization by user: #{user.email} via key: #{current_api_key.kid} \
+                          to path #{@path} with nonce: #{api_key_params[:nonce]} in a window of #{nonce_timestamp_window}")
 
       validate_user!(user)
 
       validate_permissions!(user)
-
-      # blacklist successful signature
-      Rails.cache.write("auth/blacklist/#{api_key_params[:signature]}", 'void', expires_in: 60.seconds)
 
       user # returns user(api key creator)
     rescue ActiveRecord::RecordNotFound

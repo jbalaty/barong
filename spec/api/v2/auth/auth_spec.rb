@@ -173,27 +173,6 @@ describe '/api/v2/auth functionality test' do
         expect(response.headers['Authorization']).to be_nil
       end
 
-      it 'catches api key headers and renders error if nonce is using twice' do
-        get auth_request, headers: {
-          'X-Auth-Apikey' => kid,
-          'X-Auth-Nonce' => nonce,
-          'X-Auth-Signature' => signature
-        }
-        expect(response.status).to eq(200)
-        expect(response.body).to be_empty
-        expect(response.headers['Authorization']).to include "Bearer"
-        expect(response.headers['Authorization']).not_to be_nil
-
-        get auth_request, headers: {
-          'X-Auth-Apikey' => kid,
-          'X-Auth-Nonce' => nonce,
-          'X-Auth-Signature' => signature
-        }
-        expect(response.status).to eq(401)
-        expect(response.body).to eq("{\"errors\":[\"authz.signature_blacklisted\"]}")
-        expect(response.headers['Authorization']).to be_nil
-      end
-
       it 'catches api key headers and renders error on blank header' do
         get auth_request, headers: {
           'X-Auth-Apikey' => kid,
